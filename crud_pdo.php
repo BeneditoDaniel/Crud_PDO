@@ -19,10 +19,17 @@
 
 
     /*
-    $dados = $pdo -> prepare("SELECT * FROM usuario WHERE id = :id");
-    $dados -> bindValue(":id", "1");
+    $dados = $pdo -> prepare("DELETE FROM usuario");
+    //$dados -> bindValue(":id", "1");
     $dados -> execute();
     */
+
+
+    
+    $dados = $pdo -> prepare("TRUNCATE TABLE usuario RESTART IDENTITY");
+    //$dados -> bindValue(":id", "1");
+    $dados -> execute();
+    
 
 
     /*
@@ -33,6 +40,7 @@
     */
 
 
+    /*
     $dados = $pdo -> prepare ("SELECT * FROM usuario");
     //$dados -> bindValue(":id", 4);
     $dados -> execute();
@@ -44,4 +52,5 @@
         }
         echo "<br>";
     }
+    */    
 ?>
