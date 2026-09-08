@@ -6,6 +6,35 @@ try {
 } catch (Exception $e) {
     echo "Erro Genérico: " . $e->getMessage();
 }
+session_start();
+
+$emails_salvos = $pdo->prepare("SELECT email FROM usuario");
+$emails_salvos->execute();
+$array_emails = $emails_salvos->fetchAll(PDO::FETCH_ASSOC);
+
+echo "<pre>";
+var_dump($array_emails);
+echo "</pre>";
+
+foreach ($array_emails as $usuarios) {
+    foreach ($usuarios as $email) {
+        echo $email . "<br>";
+    }
+    echo "<br>";
+    unset($email);
+}
+
+function verificacao_email($email_atual, $array_emails) {
+    foreach ($array_emails as $usuarios) {
+        foreach ($usuarios as $email) {
+            if ($email_atual == $email) {
+                echo $email_atual;
+                return false;
+            }
+        }
+    }
+    return true;
+}
 ?>
 
 
@@ -23,7 +52,7 @@ try {
     <main>
         <section>
             <h1>CADASTRAR USUÁRIO</h1>
-            <form action="<?= $_SERVER["PHP_SELF"] ?>" method="get">
+            <form action="<?= $_SERVER["PHP_SELF"] ?>" method="post">
                 <label for="nome">Nome</label>
                 <input type="text" id="nome" name="nome">
 
@@ -38,23 +67,25 @@ try {
         </section>
 
         <?php
-        $nome = $_GET["nome"] ?? 0;
-        $telefone = $_GET["telefone"] ?? 0;
-        $email = $_GET["email"] ?? 0;
-        $enviar = $_GET["enviar"] ?? 0;
+        if (isset($_POST['enviar'])) {
+            $nome = $_POST["nome"] ?? 0;
+            $telefone = $_POST["telefone"] ?? 0;
+            $email = $_POST["email"] ?? 0;
+        }
 
-        if (isset($_GET["enviar"])) {
+        if (isset($nome) and isset($telefone) and isset($email) and verificacao_email($email, $array_emails)) {
             $inserir = $pdo->prepare("INSERT INTO usuario(nome, telefone, email) VALUES (:nome, :telefone, :email)");
             $inserir->bindValue(":nome", $nome);
             $inserir->bindValue(":telefone", $telefone);
             $inserir->bindValue(":email", $email);
             $inserir->execute();
 
-            $_GET["nome"]
+            header("Location: " . $_SERVER['PHP_SELF']);
+            exit();
+        } elseif (!(isset($nome) and isset($telefone) and isset($email))) {
+            echo "Preencha todos os campos";
         }
-
         ?>
-
         <section>
             <table>
                 <thead>
