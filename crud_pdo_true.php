@@ -13,7 +13,20 @@ session_start();
 
 
 
-//------------LENDO OS USUÁRIOS JÁ CADASTRADOS
+
+
+//-------------EXCLUIR USUÁRIO
+
+if (isset($_POST["excluir"])) {
+    $dados = $pdo -> prepare("DELETE FROM usuario WHERE id = :id");
+    $dados -> bindValue(":id", $_POST["excluir"]);
+    $dados -> execute();
+}
+
+
+
+
+//------------LENDO OS USUÁRIOS JÁ CADASTRADOS VENDO QUANTOS USUÁRIOS ESTÃO CADASTRADOS
 
 $usuarios_salvos = $pdo->prepare("SELECT * FROM usuario");
 $usuarios_salvos->execute();
@@ -25,20 +38,90 @@ echo "</pre>";
 
 
 
-//------------LENDO OS EMAILS JÁ CADASTRADOS
 
-$emails_salvos = $pdo->prepare("SELECT email FROM usuario");
-$emails_salvos->execute();
-$array_emails = $emails_salvos->fetchAll(PDO::FETCH_ASSOC);
+
+//------------LENDO OS IDS JÁ CADASTRADOS
+
+echo "<h2> ID </h2> <br>";
+$ids_salvos = $pdo->prepare("SELECT id FROM usuario");
+$ids_salvos->execute();
+$array_ids = $ids_salvos->fetchAll(PDO::FETCH_ASSOC);
 
 echo "<pre>";
-var_dump($array_emails);
+var_dump($array_ids);
 echo "</pre>";
 
 
 
 
+//------------LENDO OS NOMES JÁ CADASTRADOS
+
+function pegar_nomes($pdo, $id)
+{
+    $nomes_salvos = $pdo->prepare("SELECT nome FROM usuario WHERE id = :id");
+    $nomes_salvos->bindValue(":id", $id);
+    $nomes_salvos->execute();
+    $array_nomes = $nomes_salvos->fetchAll(PDO::FETCH_ASSOC);
+    return $array_nomes[0]["nome"];
+}
+
+/*
+echo "<pre>";
+var_dump($array_nomes);
+echo "</pre>";
+*/
+
+
+
+
+//------------LENDO OS TELEFONES JÁ CADASTRADOS
+
+function pegar_telefones($pdo, $id)
+{
+    $telefones_salvos = $pdo->prepare("SELECT telefone FROM usuario WHERE id = :id");
+    $telefones_salvos->bindValue(":id", $id);
+    $telefones_salvos->execute();
+    $array_telefones = $telefones_salvos->fetchAll(PDO::FETCH_ASSOC);
+    return $array_telefones[0]["telefone"];
+}
+
+/*
+echo "<pre>";
+var_dump($array_telefones);
+echo "</pre>";
+*/
+
+
+
+//------------LENDO OS EMAILS JÁ CADASTRADOS
+
+function pegar_emails($pdo, $id)
+{
+    $emails_salvos = $pdo->prepare("SELECT email FROM usuario WHERE id = :id");
+    $emails_salvos->bindValue(":id", $id);
+    $emails_salvos->execute();
+    $array_emails = $emails_salvos->fetchAll(PDO::FETCH_ASSOC);
+    return $array_emails[0]["email"];
+}
+
+
+
+/*
+echo "<pre>";
+var_dump($array_emails);
+echo "</pre>";
+*/
+
+
+
+
+
+
 //-------------VERIFICAÇÃO SE O EMAIL COLOCADO JÁ EXISTE
+
+$emails_salvos = $pdo->prepare("SELECT email FROM usuario");
+$emails_salvos->execute();
+$array_emails = $emails_salvos->fetchAll(PDO::FETCH_ASSOC);
 
 function verificacao_email($email_atual, $array_emails)
 {
@@ -101,7 +184,6 @@ if ((empty($nome) or empty($telefone) or empty($email)) and isset($_POST['enviar
     } else {
         $_SESSION['ultimo_email'] = "";
     }
-
 } elseif (!empty($nome) and !empty($telefone) and !empty($email) and verificacao_email($email, $array_emails)) {
     $inserir = $pdo->prepare("INSERT INTO usuario(nome, telefone, email) VALUES (:nome, :telefone, :email)");
     $inserir->bindValue(":nome", $nome);
@@ -150,7 +232,7 @@ if ((empty($nome) or empty($telefone) or empty($email)) and isset($_POST['enviar
         </section>
 
 
-        <!----------------CÓDIGO HTML DA TABELA-->
+<!----------------CÓDIGO HTML DA TABELA-->
 
         <section>
             <table>
@@ -163,13 +245,25 @@ if ((empty($nome) or empty($telefone) or empty($email)) and isset($_POST['enviar
                 </thead>
 
                 <tbody>
-                    <?php 
-                    foreach ($array_usuarios as $usuarios) {
-                        echo "<tr>";
-                        foreach ($variable as $key => $value) {
-                            # code...
+                    <?php
+                    foreach ($array_ids as $usuarios) {
+                        foreach ($usuarios as $id) {
+                            echo "<tr>";
+                            echo "<td>";
+                            echo pegar_nomes($pdo, $id);
+                            echo "</td>";
+                            echo "<td>";
+                            echo pegar_telefones($pdo, $id);
+                            echo "</td>";
+                            echo "<td>";
+                            echo pegar_emails($pdo, $id);
+                            echo "</td>";
+                            echo "</tr>";
+                            echo "<form action=\"$_SERVER[PHP_SELF]\" method=\"post\">";
+                            echo "<button type =\"submit\" name = \"editar\" value = \"$id\">Editar</button>";
+                            echo "<button type =\"submit\" name = \"excluir\" value = \"$id\">Excluir</button>";
+                            echo "</form>";
                         }
-                        echo "</tr>";
                     }
                     ?>
                     <tr>
