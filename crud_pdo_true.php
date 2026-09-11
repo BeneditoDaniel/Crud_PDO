@@ -15,13 +15,137 @@ session_start();
 
 
 
+//-------------PEGAR INFORMAÇÕES DE IDS SALVOS
+
+function inf_ids($id, $pdo)
+{
+    $infs = $pdo->prepare("SELECT * FROM usuario WHERE id = :id");
+    $infs->bindValue(":id", $id);
+    $infs->execute();
+    $array_infs = $infs->fetchAll(PDO::FETCH_ASSOC);
+    return $array_infs;
+}
+
+
+
+//------------VERIFICANDO SE O BOTÃO FOI CLICADO, SE SIM, ATRIBUIR OS VALORES OBTIDOS NOS INPUTS ÀS VARIÁVEIS
+
+if (isset($_POST["enviar"]) or isset($_POST["atualizar"])) {
+    $nome = $_POST["nome"];
+    $telefone = $_POST["telefone"];
+    $email = $_POST["email"];
+}
+
+
+
 //-------------EXCLUIR USUÁRIO
 
 if (isset($_POST["excluir"])) {
-    $dados = $pdo -> prepare("DELETE FROM usuario WHERE id = :id");
-    $dados -> bindValue(":id", $_POST["excluir"]);
-    $dados -> execute();
+    $dados = $pdo->prepare("DELETE FROM usuario WHERE id = :id");
+    $dados->bindValue(":id", $_POST["excluir"]);
+    $dados->execute();
+
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
 }
+
+
+
+
+//-------------PREPARAR PARA EDITAR USUÁRIO
+
+if (!isset($_POST["editar"])) {
+    $acao_botao = "enviar";
+    $botao = "Cadastrar";
+} else {
+    $infos = inf_ids($_POST["editar"], $pdo);
+    $_SESSION['ultimo_nome'] = $infos[0]["nome"];
+    $_SESSION['ultimo_telefone'] = $infos[0]["telefone"];
+    $_SESSION['ultimo_email'] = $infos[0]["email"];
+
+    $botao = "Atualizar";
+    $acao_botao = "atualizar";
+}
+
+
+
+//-------------VERIFICAÇÃO SE O EMAIL COLOCADO JÁ EXISTE
+
+$emails_salvos = $pdo->prepare("SELECT email FROM usuario");
+$emails_salvos->execute();
+$array_emails = $emails_salvos->fetchAll(PDO::FETCH_ASSOC);
+
+function email_especifico($pdo)
+{
+    $email_especifico = $pdo->prepare("SELECT email FROM usuario");
+    $email_especifico->execute();
+    $array_email_especifico = $email_especifico->fetchAll(PDO::FETCH_ASSOC);
+    return $array_email_especifico[0]["email"];
+}
+
+
+
+function verificacao_email($email_atual, $array_emails, $pdo)
+{
+    foreach ($array_emails as $usuarios) {
+        foreach ($usuarios as $email) {
+                if ($email_atual == email_especifico($pdo)) {
+                    echo "deu bom";
+                    return true;
+                } elseif ($email_atual == $email) {
+                    echo "Email já cadastrado";
+                    return false;
+                }
+            }
+        return true;
+    }
+}
+
+
+
+
+
+//---------------EDITANDO USUÁRIO
+
+if (isset($_POST["atualizar"])) {
+}
+
+if ((empty($nome) or empty($telefone) or empty($email)) and isset($_POST['atualizar'])) {
+    echo "Preencha todos os campos";
+
+    if (!empty($nome)) {
+        $_SESSION['ultimo_nome'] = $nome;
+    } else {
+        $_SESSION['ultimo_nome'] = "";
+    }
+
+    if (!empty($telefone)) {
+        $_SESSION['ultimo_telefone'] = $telefone;
+    } else {
+        $_SESSION['ultimo_telefone'] = "";
+    }
+
+    if (!empty($email)) {
+        $_SESSION['ultimo_email'] = $email;
+    } else {
+        $_SESSION['ultimo_email'] = "";
+    }
+} elseif (!empty($nome) and !empty($telefone) and !empty($email) and verificacao_email($email, $array_emails, $pdo)) {
+    $dados = $pdo->prepare("UPDATE usuario SET nome = :nome, telefone = :telefone, email = :email WHERE id = :id");
+    $dados->bindValue(":nome", $nome);
+    $dados->bindValue(":telefone", $telefone);
+    $dados->bindValue(":email", $email);
+    $dados->bindValue(":id", $_POST["editar"]);
+    $dados->execute();
+
+    unset($_SESSION['ultimo_nome']);
+    unset($_SESSION['ultimo_telefone']);
+    unset($_SESSION['ultimo_email']);
+
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
+}
+
 
 
 
@@ -117,26 +241,6 @@ echo "</pre>";
 
 
 
-//-------------VERIFICAÇÃO SE O EMAIL COLOCADO JÁ EXISTE
-
-$emails_salvos = $pdo->prepare("SELECT email FROM usuario");
-$emails_salvos->execute();
-$array_emails = $emails_salvos->fetchAll(PDO::FETCH_ASSOC);
-
-function verificacao_email($email_atual, $array_emails)
-{
-    foreach ($array_emails as $usuarios) {
-        foreach ($usuarios as $email) {
-            if ($email_atual == $email) {
-                echo "Email já cadastrado";
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-
 
 //--------------STARTANDO VARIÁVEL PARA LEMBRAR INFORMAÇÕES DO INPUT
 
@@ -151,15 +255,6 @@ if (!isset($_SESSION['ultimo_email'])) {
 }
 
 
-
-
-//------------VERIFICANDO SE O BOTÃO FOI CLICADO, SE SIM, ATRIBUIR OS VALORES OBTIDOS NOS INPUTS ÀS VARIÁVEIS
-
-if (isset($_POST["enviar"])) {
-    $nome = $_POST["nome"];
-    $telefone = $_POST["telefone"];
-    $email = $_POST["email"];
-}
 
 
 //-------------VERIFICANDO SE OS VALORES SÃO CONDIZENTES AOS ESPERADOS E OS ENVIANDO PARA O BD
@@ -184,7 +279,7 @@ if ((empty($nome) or empty($telefone) or empty($email)) and isset($_POST['enviar
     } else {
         $_SESSION['ultimo_email'] = "";
     }
-} elseif (!empty($nome) and !empty($telefone) and !empty($email) and verificacao_email($email, $array_emails)) {
+} elseif (!empty($nome) and !empty($telefone) and !empty($email) and verificacao_email($email, $array_emails, $pdo)) {
     $inserir = $pdo->prepare("INSERT INTO usuario(nome, telefone, email) VALUES (:nome, :telefone, :email)");
     $inserir->bindValue(":nome", $nome);
     $inserir->bindValue(":telefone", $telefone);
@@ -227,12 +322,12 @@ if ((empty($nome) or empty($telefone) or empty($email)) and isset($_POST['enviar
                 <label for="email">Email</label>
                 <input type="text" id="email" name="email" value="<?= $_SESSION['ultimo_email'] ?>">
 
-                <button type="submit" name="enviar">Cadastrar</button>
+                <button type="submit" name="<?= $acao_botao ?>"><?= $botao ?></button>
             </form>
         </section>
 
 
-<!----------------CÓDIGO HTML DA TABELA-->
+        <!----------------CÓDIGO HTML DA TABELA-->
 
         <section>
             <table>
